@@ -34,6 +34,7 @@ public class MovementController : MonoBehaviour
     moveSpeed = walkSpeed;
   }
 
+
   void OnEnable()
   {
     // InputReader의 MovePerformed 이벤트에 OnMove 메서드를 구독합니다.
@@ -41,6 +42,15 @@ public class MovementController : MonoBehaviour
     inputReader.JumpPerformed += OnJump;
     inputReader.OnSprintStateChanged += OnSprint; // 달리기 이벤트
     inputReader.MouseMovePerformed += OnMouseMove; // 마우스 이동 이벤트
+
+    // 값 초기화
+    moveInput = Vector2.zero; // 초기화
+    verticalVelocity = 0f; // 초기화
+    isSprinting = false; // 초기화
+    mouseMoveHorizontal = 0f; // 초기화
+    moveSpeed = walkSpeed; // 초기화
+    speedVelocity = 0f; // 초기화
+    verticalVelocity = 0f; // 초기화
   }
 
 
@@ -55,7 +65,6 @@ public class MovementController : MonoBehaviour
   private void OnMouseMove(Vector2 mouseMove)
   {
     mouseMoveHorizontal = mouseMove.x; // 마우스 이동(수평 방향)
-    Debug.Log(mouseMove);
   }
 
   private void CharacterRotation()
@@ -101,6 +110,8 @@ public class MovementController : MonoBehaviour
 
   void Update()
   {
+
+    // 캐릭터가 바닥에 닿아 있는지 확인 후 최소한의 접지력만 유지
     if (controller.isGrounded && verticalVelocity < 0)
       verticalVelocity = -1f;
 
@@ -119,18 +130,20 @@ public class MovementController : MonoBehaviour
       moveSpeed = Mathf.SmoothDamp(moveSpeed, walkSpeed, ref speedVelocity, speedSmoothTime);
     }
 
+    // 캐릭터 이동
+    PerformMovement();
 
+    // 캐릭터 회전
+    CharacterRotation();
+  }
+
+  private void PerformMovement()
+  {
     // 이동 방향
     Vector3 horizontalDir = (transform.right * moveInput.x) + (transform.forward * moveInput.y);
     Vector3 velticalDir = new Vector3(0, verticalVelocity, 0);
     Vector3 dir = horizontalDir * moveSpeed + velticalDir;
-
-    // TODO: 달리기, 걷기 속도 설정 및 부드러운 변환
-    // 이동 속도
     controller.Move(dir * Time.deltaTime);
-
-    // 캐릭터 회전
-    CharacterRotation();
   }
 
   public bool GetIsJumping()
