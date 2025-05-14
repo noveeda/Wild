@@ -1,13 +1,17 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Sockets;
+using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.iOS;
 
 [RequireComponent(typeof(CharacterController), typeof(InputReader))]
 public class MovementController : MonoBehaviour
 {
   [Header("Move Settings")]
   public float walkSpeed = 3f;
-  public float runSpeed = 4.5f; // 달리기 속도
+  public float runSpeed = 6f; // 달리기 속도
   public float speedSmoothTime = 0.1f; // 달리기 지속 시간
   private float speedVelocity; // 달리기 속도(smoothDamp 사용)
   public float moveSpeed;// 이동 속도
@@ -27,23 +31,15 @@ public class MovementController : MonoBehaviour
   public bool GetIsSprinting => isSprinting; // 달리기 상태를 외부에서 확인할 수 있도록 프로퍼티로 제공
   public Vector2 GetMoveInput => moveInput; // 외부에서 이동 입력을 확인할 수 있도록 프로퍼티로 제공
 
-  void Awake()
+  private List<string> registedInputActionNameList = new List<string>();
+  private void Awake()
   {
+    // 컴포넌트 등록
     controller = GetComponent<CharacterController>();
     inputReader = GetComponent<InputReader>();
-    moveSpeed = walkSpeed;
-  }
-
-
-  void OnEnable()
-  {
-    // InputReader의 MovePerformed 이벤트에 OnMove 메서드를 구독합니다.
-    inputReader.MovePerformed += OnMove;
-    inputReader.JumpPerformed += OnJump;
-    inputReader.OnSprintStateChanged += OnSprint; // 달리기 이벤트
-    inputReader.MouseMovePerformed += OnMouseMove; // 마우스 이동 이벤트
 
     // 값 초기화
+    moveSpeed = walkSpeed;
     moveInput = Vector2.zero; // 초기화
     verticalVelocity = 0f; // 초기화
     isSprinting = false; // 초기화
@@ -54,11 +50,47 @@ public class MovementController : MonoBehaviour
   }
 
 
-  void OnDisable()
+  private void OnEnable()
   {
-    // InputReader의 MovePerformed 이벤트에서 OnMove 메서드 구독을 해제합니다.
-    inputReader.MovePerformed -= OnMove;
-    inputReader.OnSprintStateChanged -= OnSprint;
+    // InputReader의 MovePerformed 이벤트에 OnMove 메서드를 구독합니다.
+    inputReader.RegisterHandler<Vector2>(InputActionName.Move, OnMove);
+    inputReader.RegisterHandler(InputActionName.Jump, OnJump);
+    inputReader.RegisterHandler<bool>(InputActionName.Sprint, OnSprint);
+    inputReader.RegisterHandler<Vector2>(InputActionName.MouseMove, OnMouseMove);
+    inputReader.RegisterHandler<string>(InputActionName.MouseClick, OnMouseClick);
+
+    // 등록한 action을 리스트에 추가한다.(OnDisable에서 일괄적으로 삭제하기 위함)
+    registedInputActionNameList.Add(InputActionName.Move);
+    registedInputActionNameList.Add(InputActionName.Jump);
+    registedInputActionNameList.Add(InputActionName.Sprint);
+    registedInputActionNameList.Add(InputActionName.MouseMove);
+    registedInputActionNameList.Add(InputActionName.MouseClick);
+  }
+
+
+  private void OnDisable()
+  {
+    foreach (string actionName in registedInputActionNameList)
+    {
+      bool result = inputReader.UnregisterHandler(actionName);
+
+      if (result)
+        Debug.Log($"{actionName} 구독 해제 완료");
+      else
+        Debug.Log($"{actionName} 구독 해제 실패");
+    }
+  }
+
+  private void OnMouseClick(string buttonName)
+  {
+    if (buttonName == "leftButton")
+    {
+      Debug.Log("좌클릭 감지");
+    }
+    else if (buttonName == "rightButton")
+    {
+      Debug.Log("우클릭 감지");
+    }
   }
 
   // 마우스 이동 처리
@@ -80,14 +112,14 @@ public class MovementController : MonoBehaviour
     this.isSprinting = isSprinting;
   }
 
-  void OnMove(Vector2 input)
+  private void OnMove(Vector2 input)
   {
     // MovePerformed 이벤트에서 전달된 Vector3 값을 moveInput에 저장합니다.
 
     moveInput = input;
   }
 
-  void OnJump()
+  private void OnJump()
   {
     if (controller.isGrounded)
     {
@@ -108,7 +140,7 @@ public class MovementController : MonoBehaviour
     }
   }
 
-  void Update()
+  private void Update()
   {
 
     // 캐릭터가 바닥에 닿아 있는지 확인 후 최소한의 접지력만 유지
