@@ -24,27 +24,9 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "Crouch",
-                    "type": "Button",
-                    "id": "be68905f-cc26-4be5-8368-2936afb1d057",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                },
-                {
                     "name": "Sprint",
                     "type": "Button",
                     "id": "cad18a89-03ae-45bc-a199-9affdc59e344",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": "",
-                    "initialStateCheck": false
-                },
-                {
-                    "name": "Sneak",
-                    "type": "Button",
-                    "id": "1b737394-2bb6-4525-bc99-b756e6f09339",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -63,6 +45,15 @@
                     "name": "MouseClick",
                     "type": "Button",
                     "id": "bd59d35f-794f-45db-b4f2-a562df071b81",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "ToggleInventory",
+                    "type": "Button",
+                    "id": "1cec7dde-c38b-4b2c-9d69-ba05a02cac0c",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -138,34 +129,12 @@
                 },
                 {
                     "name": "",
-                    "id": "2ff77071-c212-46c9-a9c7-371bb86e9b75",
-                    "path": "<Keyboard>/c",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "Crouch",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
                     "id": "5c6e79f5-b447-435d-8c37-a25bdfe26cfe",
                     "path": "<Keyboard>/leftShift",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
                     "action": "Sprint",
-                    "isComposite": false,
-                    "isPartOfComposite": false
-                },
-                {
-                    "name": "",
-                    "id": "8a08a0a8-b503-4964-a716-239af951267c",
-                    "path": "<Keyboard>/leftCtrl",
-                    "interactions": "",
-                    "processors": "",
-                    "groups": "",
-                    "action": "Sneak",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -199,6 +168,17 @@
                     "processors": "",
                     "groups": "",
                     "action": "MouseClick",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "3d012338-ace5-4bf9-8a82-e9ab30750c5d",
+                    "path": "<Keyboard>/e",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": ";PlayerControl",
+                    "action": "ToggleInventory",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

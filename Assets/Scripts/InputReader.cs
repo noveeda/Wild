@@ -1,111 +1,111 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using System;
+using System.Collections.Generic;
+using UnityEditor;
+using TMPro;
+using Unity.VisualScripting;
 
+/// <summary>
+/// InputActionAsset을 바탕으로, 액션 이름과 대응되는 핸들러를 자동으로 바인딩하여
+/// 처리하는 클래스.
+/// 매번 새로운 InputAction이 생겨도 이 클래스 내부 코드를 수정할 필요 없이 외부에서
+/// 등록만 하면 됨.
+/// </summary>
 public class InputReader : MonoBehaviour
 {
   [Header("Input Actions Asset")]
-  public InputActionAsset inputActions;  // Inspector에서 할당
+  // 에디터에서 연결한 InputActions
+  [SerializeField]
+  private InputActionAsset inputActions;
 
-  // InputAction 변수
-  private InputAction moveAction;
-  private InputAction jumpAction;
-  private InputAction sprintAction;
-  private InputAction mouseMoveAction; // 마우스 이동
+  // 문자열로 된 키값에 대응하는 입력 핸들러 저장소
+  private Dictionary<string, IInputHandler> handlerMap = new();
 
-  // 외부 구독용 이벤트(발행자 설정)
-  public event Action<Vector2> MovePerformed;
-  public event Action JumpPerformed;
-  public event Action<bool> OnSprintStateChanged; // 달리기 이벤트 구독
-  public event Action<Vector2> MouseMovePerformed; // 마우스 이동 이벤트
+  // ===============================
+  // 외부에서 사용할 등록 함수들
+  // ===============================
 
-  void Awake()
+  /// <summary>
+  /// Action타입이 void가 아닌 다른 타입인 발행자
+  /// </summary>
+  /// <typeparam name="T">callback의 타입</typeparam>
+  /// <param name="actionName">Input System에 정의된 Action 이름(InputActionNames.cs에 정의됨)</param>
+  /// <param name="callback">등록할 콜백함수</param>
+  public void RegisterHandler<T>(string actionName, Action<T> callback)
   {
-    // InputAction에서 Gameplay 액션 맵과 Move, Jump 액션을 찾습니다.
-    var gameplay = inputActions.FindActionMap("Gameplay");
-    moveAction = gameplay.FindAction("Move");
-    jumpAction = gameplay.FindAction("Jump");
-    sprintAction = gameplay.FindAction("Sprint");
-    mouseMoveAction = gameplay.FindAction("MouseMove"); // 마우스 이동
+    if (typeof(T) == typeof(Vector2))
+    {
+      handlerMap[actionName] = new Vector2Handler(callback as Action<Vector2>);
+    }
+    else if (typeof(T) == typeof(bool))
+    {
+      handlerMap[actionName] = new BoolHandler(callback as Action<bool>);
+    }
+    else if (typeof(T) == typeof(string))
+    {
+      handlerMap[actionName] = new ControlNameHandler(callback as Action<string>);
+    }
   }
+
+  /// <summary>
+  /// Action 타입이 void인 발행자
+  /// </summary>
+  /// <param name="actionName">>Input System에 정의된 Action 이름(InputActionNames.cs에 정의됨)</param>
+  /// <param name="callback">등록할 콜백함수</param>
+  public void RegisterHandler(string actionName, Action callback)
+    => handlerMap[actionName] = new VoidHandler(callback);
+
+  /// <summary>
+  /// 구독자를 구독 해제시키는 메소드
+  /// </summary>
+  /// <param name="actionName">구독 해제할 Action 이름</param>
+  /// <returns>해제 성공은 true, 아니면 false</returns>
+  public bool UnregisterHandler(string actionName)
+    => handlerMap.Remove(actionName);
 
   void OnEnable()
   {
-    // moveAction과 jumpAction을 활성화합니다.
-    moveAction.Enable();    // 이동
-    jumpAction.Enable();    // 점프
-    sprintAction.Enable();  // 달리기 액션 활성화
-    mouseMoveAction.Enable(); // 마우스 이동 액션 활성화
-
-    // 이벤트 구독 설정
-    // moveAction이 실행되면 MovePerformed 이벤트를 호출합니다.
-    // moveAction이 취소되면 MovePerformed 이벤트를 호출합니다.
-    moveAction.performed += OnMovePerformed;
-    moveAction.canceled += OnMoveCanceled;
-
-    // jumpAction이 실행되면 JumpPerformed 이벤트를 호출합니다.
-    // jumpAction은 Vector3를 사용하지 않으므로 _로 무시합니다.(실행 확인 여부만 하면 됨)
-    jumpAction.performed += OnJumpPerformed;
-
-    sprintAction.performed += OnSprint; // 달리기 이벤트
-    sprintAction.canceled += OnSprint; // 달리기 이벤트
-
-    mouseMoveAction.performed += OnMouseMovePerformed; // 마우스 이동 이벤트
-    // mouseMoveAction.performed += OnMouseMoveCanceled; // 마우스 이동 이벤트
+    // Input System의 Action map을 순회
+    foreach (var map in inputActions.actionMaps)
+    {
+      // Action Map을 순회하며 등록된 action을 가져옴
+      foreach (var action in map.actions)
+      {
+        // 각 action가 performed될 때 실행할 컨텍스트를 추가
+        action.performed += ctx => TryInvoke(action.name, ctx);
+        action.canceled += ctx => TryInvoke(action.name, ctx);
+        action.Enable();
+      }
+    }
   }
 
   void OnDisable()
   {
-    moveAction.performed -= OnMovePerformed;
-    moveAction.canceled -= OnMoveCanceled;
-    jumpAction.performed -= OnJumpPerformed;
-    sprintAction.performed -= OnSprint; // 달리기 이벤트
-    sprintAction.canceled -= OnSprint;
-    mouseMoveAction.performed -= OnMouseMovePerformed; // 마우스 이동 이벤트
-    // mouseMoveAction.performed -= OnMouseMoveCanceled; // 마우스 이동 이벤트
-
+    foreach (var map in inputActions.actionMaps)
+    {
+      foreach (var action in map.actions)
+      {
+        action.Disable();
+      }
+    }
     inputActions.Disable();
   }
 
-  private void OnMouseMovePerformed(InputAction.CallbackContext context)
+  /// <summary>
+  /// handlerMap에서 actionName에 해당하는 핸들러를 찾아서 Invoke 한다
+  /// </summary>
+  /// <param name="actionName">등록할 핸들러 이름</param>
+  /// <param name="context">콜백 컨텍스트</param>
+  private void TryInvoke(string actionName, InputAction.CallbackContext context)
   {
-    if (context.performed)
+    if (handlerMap.TryGetValue(actionName, out var handler))
     {
-      // 마우스 이동 이벤트를 호출합니다.
-      MouseMovePerformed?.Invoke(context.ReadValue<Vector2>());
+      handler.Invoke(context);
     }
-  }
-
-  private void OnMouseMoveCanceled(InputAction.CallbackContext context)
-  {
-    // 마우스 이동 이벤트를 호출합니다.
-    MouseMovePerformed?.Invoke(Vector2.zero);
-  }
-
-  private void OnSprint(InputAction.CallbackContext context)
-  {
-    if (context.performed)
-      OnSprintStateChanged?.Invoke(true);  // true: 버튼 누름
-
-    else if (context.canceled)
-      OnSprintStateChanged?.Invoke(false); // false: 버튼 뗌
-  }
-
-  private void OnMovePerformed(InputAction.CallbackContext context)
-  {
-    // MovePerformed 이벤트를 호출합니다.
-    MovePerformed?.Invoke(context.ReadValue<Vector2>());
-  }
-
-  private void OnMoveCanceled(InputAction.CallbackContext context)
-  {
-    // MovePerformed 이벤트를 호출합니다.
-    MovePerformed?.Invoke(Vector2.zero);
-  }
-
-  private void OnJumpPerformed(InputAction.CallbackContext context)
-  {
-    // JumpPerformed 이벤트를 호출합니다.
-    JumpPerformed?.Invoke();
+    else
+    {
+      Debug.LogWarning($"[InputReader(TryInvoke)] 등록되지 않은 액션 : {actionName}");
+    }
   }
 }
