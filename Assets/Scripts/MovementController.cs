@@ -83,14 +83,14 @@ public class MovementController : MonoBehaviour
 
   private void OnMouseClick(string buttonName)
   {
-    if (buttonName == "leftButton")
-    {
-      Debug.Log("좌클릭 감지");
-    }
-    else if (buttonName == "rightButton")
-    {
-      Debug.Log("우클릭 감지");
-    }
+    // if (buttonName == "leftButton")
+    // {
+    //   Debug.Log("좌클릭 감지");
+    // }
+    // else if (buttonName == "rightButton")
+    // {
+    //   Debug.Log("우클릭 감지");
+    // }
   }
 
   // 마우스 이동 처리

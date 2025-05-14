@@ -48,6 +48,8 @@ public class InputReader : MonoBehaviour
     }
   }
 
+
+  //@FIXME: 나중에 등록된 Handler도 반영되게끔 고쳐야함. ToggleInventory가 등록이 안되는중.
   /// <summary>
   /// Action 타입이 void인 발행자
   /// </summary>
@@ -72,9 +74,18 @@ public class InputReader : MonoBehaviour
       // Action Map을 순회하며 등록된 action을 가져옴
       foreach (var action in map.actions)
       {
+        if (!handlerMap.TryGetValue(action.name, out var handler))
+        {
+          continue;
+        }
+
         // 각 action가 performed될 때 실행할 컨텍스트를 추가
         action.performed += ctx => TryInvoke(action.name, ctx);
-        action.canceled += ctx => TryInvoke(action.name, ctx);
+
+        if (handler is Vector2Handler || handler is BoolHandler)
+          action.canceled += ctx => TryInvoke(action.name, ctx);
+
+        Debug.Log($"Enabling action: {action.name}");
         action.Enable();
       }
     }

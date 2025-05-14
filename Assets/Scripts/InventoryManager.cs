@@ -1,10 +1,27 @@
 using Unity.VisualScripting.ReorderableList;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class InventoryManager : MonoBehaviour
 {
     public InventorySlot[] inventorySlots; // 인벤토리 슬롯 배열
     public GameObject inventoryItemPrefab; // 인벤토리 아이템 프리팹
+    public GameObject inventoryGroup;
+    public InputReader inputReader;
+
+
+    void OnEnable()
+    {
+        Debug.Log($"inputReader is null: {inputReader == null}");
+        inputReader.RegisterHandler(InputActionName.ToggleInventory, ToggleInventory);
+    }
+
+    private void ToggleInventory()
+    {
+        Debug.Log("인벤토리 토글함.");
+        inventoryGroup.SetActive(!inventoryGroup.activeSelf);
+    }
+
     public bool AddItem(Item item)
     {
 
