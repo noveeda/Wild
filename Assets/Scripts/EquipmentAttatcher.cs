@@ -3,24 +3,26 @@ using UnityEngine;
 public class EquipmentAttatcher : MonoBehaviour
 {
     public Animator playerAnimator;
-    private GameObject currentTool;
+    private GameObject currentEquipment;
+    public Transform placeHolder;
 
-    public void SwitchTool(GameObject newToolPrefab)
+    // TODO EquipItem 테스트 필요
+    public void EquipItem(InventoryItem item)
     {
-        // 기존 도구 제거
-        if (currentTool != null)
-        {
-            Destroy(currentTool);
-        }
+        if (currentEquipment != null)
+            Destroy(currentEquipment);
 
-        // 손 본 찾기
-        Transform rightHand = playerAnimator.GetBoneTransform(HumanBodyBones.RightHand);
+        if (item == null || item.ItemPrefab == null)
+            return;
 
-        if (rightHand != null && newToolPrefab != null)
-        {
-            currentTool = Instantiate(newToolPrefab, rightHand);
-            currentTool.transform.localPosition = Vector3.zero; // 필요시 조정
-            currentTool.transform.localRotation = Quaternion.identity; // 필요시 조정
-        }
+        currentEquipment = Instantiate(item.ItemPrefab, placeHolder);
+        currentEquipment.transform.localPosition = Vector3.zero;
+        currentEquipment.transform.localRotation = Quaternion.identity;
+    }
+
+    // TODO Unequip 미완성
+    public void Unequip()
+    {
+
     }
 }

@@ -4,10 +4,16 @@ using UnityEngine.InputSystem;
 
 public class InventoryManager : MonoBehaviour
 {
+    [Header("컴포넌트 설정")]
     public InventorySlot[] inventorySlots; // 인벤토리 슬롯 배열
     public GameObject inventoryItemPrefab; // 인벤토리 아이템 프리팹
     public GameObject inventoryGroup;
     public InputReader inputReader;
+    public EquipmentAttatcher equipmentAttatcher;
+
+    [Header("핫바 설정")]
+    public int totalHotbarSlots = 9;
+    private int currentSelectedSlot = 0;
 
 
     void OnEnable()
@@ -22,6 +28,7 @@ public class InventoryManager : MonoBehaviour
         inventoryGroup.SetActive(!inventoryGroup.activeSelf);
     }
 
+    // TODO InventoryItem 프로퍼티 적용 테스트 필요
     public bool AddItem(Item item)
     {
 
@@ -35,11 +42,11 @@ public class InventoryManager : MonoBehaviour
 
             // 최대 스택 크기까지 채우기
             if (
-                itemInSlot.getID == item.itemID &&
-                itemInSlot.getCount < itemInSlot.getMaxStackSize &&
-                itemInSlot.isStackable == true)
+                itemInSlot.ItemID == item.itemID &&
+                itemInSlot.Count < itemInSlot.MaxStackSize &&
+                itemInSlot.Stackable == true)
             {
-                itemInSlot.count++;
+                itemInSlot.Count++;
                 itemInSlot.RefreshCount();
                 return true; // true면 바닥에 떨어진 아이템 Destory(먹고 난 후)
             }
@@ -64,5 +71,32 @@ public class InventoryManager : MonoBehaviour
         GameObject newItemGO = Instantiate(inventoryItemPrefab, slot.transform); // 슬롯에 아이템 프리팹 생성
         InventoryItem inventoryItem = newItemGO.GetComponent<InventoryItem>(); // InventoryItem 컴포넌트 가져오기
         inventoryItem.InitializeItem(item); // 아이템 초기화
+    }
+
+    public void SelectHotbarSlot(int index)
+    {
+        index = Mathf.Clamp(index, 0, totalHotbarSlots - 1);
+
+        currentSelectedSlot = index;
+
+        Debug.Log($"[InventoryManager] 핫바 슬롯 선택됨: {index}");
+
+        // 무기 장착 처리
+        InventorySlot slot = inventorySlots[index];
+        InventoryItem item = slot.GetComponentInChildren<InventoryItem>();
+        if (item != null)
+        {
+            equipmentAttatcher.EquipItem(item); // 무기 장착
+        }
+        else
+        {
+            equipmentAttatcher.Unequip(); // 빈 슬롯이면 해제
+        }
+    }
+
+    public void ScrollHotbarSlot(int direction)
+    {
+        currentSelectedSlot = (currentSelectedSlot + direction + totalHotbarSlots) % totalHotbarSlots;
+        SelectHotbarSlot(currentSelectedSlot);
     }
 }

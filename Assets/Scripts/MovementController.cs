@@ -5,8 +5,8 @@ using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.iOS;
+using UnityEngine.Rendering.Universal;
 
-[RequireComponent(typeof(CharacterController), typeof(InputReader))]
 public class MovementController : MonoBehaviour
 {
   [Header("Move Settings")]
@@ -20,11 +20,11 @@ public class MovementController : MonoBehaviour
   public float gravity = -9.81f;  // 중력 가속도
   public float gravityScale = 1f; // 중력 스케일
 
-  public float mouseMoveSpeed = 5f; // 마우스 이동 속도
-  private float mouseMoveHorizontal; // 마우스 이동(수평 방향)
   private bool isSprinting; // 달리기 상태
   private float verticalVelocity; // y축 속도
-  private InputReader inputReader; // InputReader 컴포넌트
+
+  [Header("의존 컴포넌트 주입")]
+  public InputReader inputReader; // InputReader 컴포넌트
   private CharacterController controller;
   private Vector2 moveInput;
 
@@ -36,14 +36,12 @@ public class MovementController : MonoBehaviour
   {
     // 컴포넌트 등록
     controller = GetComponent<CharacterController>();
-    inputReader = GetComponent<InputReader>();
 
     // 값 초기화
     moveSpeed = walkSpeed;
     moveInput = Vector2.zero; // 초기화
     verticalVelocity = 0f; // 초기화
     isSprinting = false; // 초기화
-    mouseMoveHorizontal = 0f; // 초기화
     moveSpeed = walkSpeed; // 초기화
     speedVelocity = 0f; // 초기화
     verticalVelocity = 0f; // 초기화
@@ -52,11 +50,12 @@ public class MovementController : MonoBehaviour
 
   private void OnEnable()
   {
+    Debug.Log($"입력 시스템 is null : {inputReader == null}");
+
     // InputReader의 MovePerformed 이벤트에 OnMove 메서드를 구독합니다.
     inputReader.RegisterHandler<Vector2>(InputActionName.Move, OnMove);
     inputReader.RegisterHandler(InputActionName.Jump, OnJump);
     inputReader.RegisterHandler<bool>(InputActionName.Sprint, OnSprint);
-    inputReader.RegisterHandler<Vector2>(InputActionName.MouseMove, OnMouseMove);
     inputReader.RegisterHandler<string>(InputActionName.MouseClick, OnMouseClick);
 
     // 등록한 action을 리스트에 추가한다.(OnDisable에서 일괄적으로 삭제하기 위함)
@@ -81,6 +80,7 @@ public class MovementController : MonoBehaviour
     }
   }
 
+  // TODO 마우스 관련 로직 분리 필요
   private void OnMouseClick(string buttonName)
   {
     // if (buttonName == "leftButton")
@@ -91,20 +91,6 @@ public class MovementController : MonoBehaviour
     // {
     //   Debug.Log("우클릭 감지");
     // }
-  }
-
-  // 마우스 이동 처리
-  private void OnMouseMove(Vector2 mouseMove)
-  {
-    mouseMoveHorizontal = mouseMove.x; // 마우스 이동(수평 방향)
-  }
-
-  private void CharacterRotation()
-  {
-    // 캐릭터 회전
-    Vector3 rotation = new Vector3(0, mouseMoveHorizontal * mouseMoveSpeed, 0);
-    transform.Rotate(rotation * Time.deltaTime); // 마우스 이동 속도에 따라 회전 속도 조절
-    mouseMoveHorizontal = 0; // 마우스 이동 초기화
   }
 
   private void OnSprint(bool isSprinting)
@@ -164,9 +150,6 @@ public class MovementController : MonoBehaviour
 
     // 캐릭터 이동
     PerformMovement();
-
-    // 캐릭터 회전
-    CharacterRotation();
   }
 
   private void PerformMovement()

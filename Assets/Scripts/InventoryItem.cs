@@ -2,24 +2,49 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using TMPro;
+using NUnit.Framework.Constraints;
+using UnityEditor.Rendering;
 public class InventoryItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
 {
-    [Header("아이템 UI 속성")]
+    [Header("아이템 속성")]
     public Image image; // 아이템 이미지
     public TMP_Text countText; // 아이템 개수 텍스트
-    [HideInInspector] public Item item; // 아이템 정보
-    [HideInInspector] public Transform parentAfterDrag; // 드래그 후 부모 슬롯
-    [HideInInspector] public int count = 1; // 아이템 개수 (초기값 1)
 
-    public int maxStackSize = 1; // 최대 개수 (초기값 1)
-    public int getCount => count; // 현재 개수
-    public int getMaxStackSize => maxStackSize; // 최대 스택 크기
-    public int getID => item.itemID; // 아이템 ID
-    public int getMaxDurability => item.maxDurability; // 아이템 내구도
-    public int getCurrentDurability => item.durability; // 현재 내구도
-    public bool isStackable => item.isStackable; // 스택 가능 여부
-    public bool isBreakable => item.isBreakable; // 파괴 가능 여부
-    public bool isConsumable => item.isConsumable; // 소모 가능 여부
+    [SerializeField]
+    public Item item;
+    public Transform parentAfterDrag;
+
+
+    ///===========================================
+    /// 프로퍼티
+    ///===========================================
+
+    // TODO 필드 프로퍼티로 변경. 추후 테스트 필요
+    [Header("프로퍼티")]
+
+    public int Count { get; set; } = 1;
+
+    public int ItemID { get; set; }
+
+    public string ItemName { get; set; }
+
+    public string Description { get; set; }
+
+    public ItemType ItemType { get; set; }
+
+    public bool Stackable { get; set; }
+
+    public bool Breakable { get; set; }
+
+    public bool Consumable { get; set; }
+
+    public int Durability { get; set; }
+
+    public int MaxDurability { get; set; }
+
+    public int MaxStackSize { get; set; }
+
+    public GameObject ItemPrefab { get; set; }
 
     void Start()
     {
@@ -28,16 +53,25 @@ public class InventoryItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
 
     public void InitializeItem(Item newItem)
     {
-        item = newItem; // 아이템 정보 초기화
-        image.sprite = newItem.image; // 아이콘 설정
-        maxStackSize = newItem.maxStackSize;
+        ItemID = newItem.itemID;
+        ItemName = newItem.itemName;
+        Description = newItem.description;
+        ItemType = newItem.itemType;
+        Consumable = newItem.consumable;
+        Stackable = newItem.stackable;
+        Breakable = newItem.breakable;
+        MaxDurability = newItem.maxDurability;
+        Durability = newItem.durability;
+        image.sprite = newItem.icon;
+        MaxStackSize = newItem.maxStackSize;
+        ItemPrefab = newItem.itemPrefab;
         RefreshCount();
     }
 
     public void RefreshCount()
     {
-        countText.text = count.ToString(); // 아이템 개수 텍스트 업데이트
-        bool textActive = count > 1; // 개수가 1보다 크면 텍스트 활성화
+        countText.text = Count.ToString(); // 아이템 개수 텍스트 업데이트
+        bool textActive = Count > 1; // 개수가 1보다 크면 텍스트 활성화
         countText.gameObject.SetActive(textActive); // 텍스트 활성화/비활성화
     }
 

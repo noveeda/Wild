@@ -46,17 +46,25 @@ public class InputReader : MonoBehaviour
     {
       handlerMap[actionName] = new ControlNameHandler(callback as Action<string>);
     }
+    else if (typeof(T) == typeof(float))
+    {
+      handlerMap[actionName] = new FloatHander(callback as Action<float>);
+    }
+
+    ApplyActions();
   }
 
 
-  //@FIXME: 나중에 등록된 Handler도 반영되게끔 고쳐야함. ToggleInventory가 등록이 안되는중.
   /// <summary>
   /// Action 타입이 void인 발행자
   /// </summary>
   /// <param name="actionName">>Input System에 정의된 Action 이름(InputActionNames.cs에 정의됨)</param>
   /// <param name="callback">등록할 콜백함수</param>
   public void RegisterHandler(string actionName, Action callback)
-    => handlerMap[actionName] = new VoidHandler(callback);
+  {
+    handlerMap[actionName] = new VoidHandler(callback);
+    ApplyActions();
+  }
 
   /// <summary>
   /// 구독자를 구독 해제시키는 메소드
@@ -66,7 +74,26 @@ public class InputReader : MonoBehaviour
   public bool UnregisterHandler(string actionName)
     => handlerMap.Remove(actionName);
 
+  //@FIXME: 나중에 등록된 Handler도 반영되게끔 고쳐야함. ToggleInventory가 등록이 안되는중.
   void OnEnable()
+  {
+
+  }
+
+  void OnDisable()
+  {
+    foreach (var map in inputActions.actionMaps)
+    {
+      foreach (var action in map.actions)
+      {
+        action.Disable();
+      }
+    }
+    inputActions.Disable();
+  }
+
+
+  private void ApplyActions()
   {
     // Input System의 Action map을 순회
     foreach (var map in inputActions.actionMaps)
@@ -89,18 +116,6 @@ public class InputReader : MonoBehaviour
         action.Enable();
       }
     }
-  }
-
-  void OnDisable()
-  {
-    foreach (var map in inputActions.actionMaps)
-    {
-      foreach (var action in map.actions)
-      {
-        action.Disable();
-      }
-    }
-    inputActions.Disable();
   }
 
   /// <summary>
