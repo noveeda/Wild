@@ -6,7 +6,7 @@ public class InventoryManager : MonoBehaviour
 {
     [Header("컴포넌트 설정")]
     public InventorySlot[] inventorySlots; // 인벤토리 슬롯 배열
-    public GameObject inventoryItemPrefab; // 인벤토리 아이템 프리팹
+    public GameObject inventoryItemPrefab; // 빈 아이템 프리팹
     public GameObject inventoryGroup;
     public InputReader inputReader;
     public EquipmentAttatcher equipmentAttatcher;
@@ -18,7 +18,6 @@ public class InventoryManager : MonoBehaviour
 
     void OnEnable()
     {
-        Debug.Log($"inputReader is null: {inputReader == null}");
         inputReader.RegisterHandler(InputActionName.ToggleInventory, ToggleInventory);
     }
 
@@ -28,15 +27,15 @@ public class InventoryManager : MonoBehaviour
         inventoryGroup.SetActive(!inventoryGroup.activeSelf);
     }
 
-    // TODO InventoryItem 프로퍼티 적용 테스트 필요
     public bool AddItem(Item item)
     {
-
+        // 이미 갖고 있는 아이템인지 확인
         for (int i = 0; i < inventorySlots.Length; i++)
         {
             InventorySlot slot = inventorySlots[i];
             if (slot.isEmpty)
                 continue;
+
             // 슬롯의 아이템을 가져오기
             InventoryItem itemInSlot = slot.GetComponentInChildren<InventoryItem>();
 
@@ -44,7 +43,7 @@ public class InventoryManager : MonoBehaviour
             if (
                 itemInSlot.ItemID == item.itemID &&
                 itemInSlot.Count < itemInSlot.MaxStackSize &&
-                itemInSlot.Stackable == true)
+                itemInSlot.IsStackable == true)
             {
                 itemInSlot.Count++;
                 itemInSlot.RefreshCount();

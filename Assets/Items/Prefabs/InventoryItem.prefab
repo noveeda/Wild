@@ -203,7 +203,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 75218f9c383b247448f037ac5b9c9549, type: 3}
+  m_Sprite: {fileID: 0}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -229,4 +229,3 @@ MonoBehaviour:
   countText: {fileID: 18541813287871450}
   item: {fileID: 0}
   parentAfterDrag: {fileID: 0}
-  count: 1

@@ -50,8 +50,6 @@ public class MovementController : MonoBehaviour
 
   private void OnEnable()
   {
-    Debug.Log($"입력 시스템 is null : {inputReader == null}");
-
     // InputReader의 MovePerformed 이벤트에 OnMove 메서드를 구독합니다.
     inputReader.RegisterHandler<Vector2>(InputActionName.Move, OnMove);
     inputReader.RegisterHandler(InputActionName.Jump, OnJump);
@@ -73,10 +71,10 @@ public class MovementController : MonoBehaviour
     {
       bool result = inputReader.UnregisterHandler(actionName);
 
-      if (result)
-        Debug.Log($"{actionName} 구독 해제 완료");
-      else
-        Debug.Log($"{actionName} 구독 해제 실패");
+      // if (result)
+      //   Debug.Log($"{actionName} 구독 해제 완료");
+      // else
+      //   Debug.Log($"{actionName} 구독 해제 실패");
     }
   }
 

@@ -10,61 +10,87 @@ public class InventoryItem : MonoBehaviour, IBeginDragHandler, IDragHandler, IEn
     public Image image; // 아이템 이미지
     public TMP_Text countText; // 아이템 개수 텍스트
 
-    [SerializeField]
-    public Item item;
+    private Item item;
     public Transform parentAfterDrag;
 
+    private int itemID;
+
+    private string itemName;
+
+    private string description;
+
+    private int count;
+
+    private bool isStackable;
+
+    private bool isBreakable;
+
+    private bool isConsumable;
+
+    private int durability;
+
+    private int maxDurability;
+
+    private int maxStackSize;
+
+    private ItemType itemType;
+
+    public GameObject itemPrefab;
 
     ///===========================================
     /// 프로퍼티
     ///===========================================
 
-    // TODO 필드 프로퍼티로 변경. 추후 테스트 필요
     [Header("프로퍼티")]
 
-    public int Count { get; set; } = 1;
+    public int ItemID { get { return this.itemID; } }
 
-    public int ItemID { get; set; }
+    public string ItemName { get { return this.itemName; } }
 
-    public string ItemName { get; set; }
+    public string Description { get { return this.description; } }
 
-    public string Description { get; set; }
-
-    public ItemType ItemType { get; set; }
-
-    public bool Stackable { get; set; }
-
-    public bool Breakable { get; set; }
-
-    public bool Consumable { get; set; }
-
-    public int Durability { get; set; }
-
-    public int MaxDurability { get; set; }
-
-    public int MaxStackSize { get; set; }
-
-    public GameObject ItemPrefab { get; set; }
-
-    void Start()
+    public int Count
     {
-        InitializeItem(item); // 아이템 초기화
+        get { return this.count; }
+        set { this.count = value; }
     }
 
-    public void InitializeItem(Item newItem)
+    public bool IsStackable { get { return this.isStackable; } }
+
+    public bool IsBreakable { get { return this.isBreakable; } }
+
+    public bool IsConsumable { get { return this.isConsumable; } }
+
+    public int Durability { get { return this.durability; } }
+
+    public int MaxDurability { get { return this.maxDurability; } }
+
+    public int MaxStackSize { get { return this.maxStackSize; } }
+
+    public ItemType ItemType { get { return this.itemType; } }
+
+    public GameObject ItemPrefab { get { return this.itemPrefab; } }
+
+    // void Start()
+    // {
+    //     InitializeItem(item); // 아이템 초기화
+    // }
+
+    public void InitializeItem(Item item)
     {
-        ItemID = newItem.itemID;
-        ItemName = newItem.itemName;
-        Description = newItem.description;
-        ItemType = newItem.itemType;
-        Consumable = newItem.consumable;
-        Stackable = newItem.stackable;
-        Breakable = newItem.breakable;
-        MaxDurability = newItem.maxDurability;
-        Durability = newItem.durability;
-        image.sprite = newItem.icon;
-        MaxStackSize = newItem.maxStackSize;
-        ItemPrefab = newItem.itemPrefab;
+        this.itemID = item.itemID;
+        this.itemName = item.itemName;
+        this.description = item.description;
+        this.itemType = item.itemType;
+        this.isConsumable = item.consumable;
+        this.isStackable = item.stackable;
+        this.isBreakable = item.breakable;
+        this.maxDurability = item.maxDurability;
+        this.durability = item.durability;
+        this.maxStackSize = item.maxStackSize;
+        this.itemPrefab = item.itemPrefab;
+        image.sprite = item.icon;
+
         RefreshCount();
     }
 

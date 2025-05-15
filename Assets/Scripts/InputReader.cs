@@ -112,7 +112,6 @@ public class InputReader : MonoBehaviour
         if (handler is Vector2Handler || handler is BoolHandler)
           action.canceled += ctx => TryInvoke(action.name, ctx);
 
-        Debug.Log($"Enabling action: {action.name}");
         action.Enable();
       }
     }

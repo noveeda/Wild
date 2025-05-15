@@ -45,12 +45,6 @@ public class MouseLook : MonoBehaviour
             Cursor.visible = true;
         }
 
-        if (Mouse.current.leftButton.wasPressedThisFrame && Cursor.lockState != CursorLockMode.Locked)
-        {
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
-        }
-
         if (Cursor.lockState != CursorLockMode.Locked)
             return; // 커서가 고정 안 되어 있으면 시야 회전 막음
 
