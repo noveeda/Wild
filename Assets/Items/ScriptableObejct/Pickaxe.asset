@@ -15,13 +15,12 @@ MonoBehaviour:
   itemID: 0
   itemName: "\uACE1\uAD2D\uC774"
   description: "\uAD11\uBB3C\uC744 \uCE98 \uC218 \uC788\uB2E4."
-  isConsumable: 0
-  itemType: 2
-  isStackable: 0
-  isBreakable: 1
-  durability: 300
+  consumable: 1
+  stackable: 1
+  breakable: 0
   maxDurability: 300
-  image: {fileID: 21300000, guid: f4b5a9b9306e0364590fdd94886a0ec1, type: 3}
-  itemPrefab: {fileID: 0}
+  durability: 300
   maxStackSize: 1
-  currentStackSize: 1
+  itemType: 2
+  icon: {fileID: 21300000, guid: f4b5a9b9306e0364590fdd94886a0ec1, type: 3}
+  itemPrefab: {fileID: 919132149155446097, guid: 04d53b971a122094c897b117056dfd63, type: 3}
