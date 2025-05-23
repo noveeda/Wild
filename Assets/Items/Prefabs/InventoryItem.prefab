@@ -227,5 +227,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   image: {fileID: 4835623559193340227}
   countText: {fileID: 18541813287871450}
-  item: {fileID: 0}
   parentAfterDrag: {fileID: 0}
+  itemPrefab: {fileID: 0}
