@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[RequireComponent(typeof(NavMeshAgent))]
+[RequireComponent(typeof(UnityEngine.AI.NavMeshAgent))]
 public class Boss : MonoBehaviour
 {
     public Animator animator;             // 보스 애니메이터

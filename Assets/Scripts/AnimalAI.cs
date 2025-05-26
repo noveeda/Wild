@@ -13,12 +13,12 @@ public class AnimalAI : MonoBehaviour
     private float timer;         // 현재 타이머
     private bool isMoving = true; // 현재 이동 중인지 여부
 
-    private DropOnDeath dropOnDeath; // 드롭 스크립트 참조
+    // private DropOnDeath dropOnDeath; // 드롭 스크립트 참조
 
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
-        dropOnDeath = GetComponent<DropOnDeath>(); // DropOnDeath 스크립트 가져오기
+        // dropOnDeath = GetComponent<DropOnDeath>(); // DropOnDeath 스크립트 가져오기
 
         timer = moveTime;
         SetRandomTarget(); // 첫 목표 지점 설정
@@ -61,7 +61,7 @@ public class AnimalAI : MonoBehaviour
     // 외부에서 호출되는 함수, 동물 제거 및 아이템 드롭 수행
     public void Die()
     {
-        dropOnDeath?.DropItem(); // 아이템 드롭 시도
+        // dropOnDeath?.DropItem(); // 아이템 드롭 시도
         Destroy(gameObject);     // 동물 오브젝트 제거
     }
 }
