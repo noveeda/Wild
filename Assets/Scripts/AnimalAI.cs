@@ -1,59 +1,67 @@
 using UnityEngine;
 using UnityEngine.AI;
 
+[RequireComponent(typeof(NavMeshAgent))]
 public class AnimalAI : MonoBehaviour
 {
-    private NavMeshAgent navAgent;
+    public float moveSpeed = 2f; // 이동 속도
+    private Vector3 targetPosition;
 
-    public float moveRadius = 20f;       // 맵 범위 내 랜덤 이동 반경
-    public float moveDelay = 2f;         // 멈추는 시간 (초)
-    public float minStopTime = 1f;       // 최소 멈춤 시간
-    public float maxStopTime = 3f;       // 최대 멈춤 시간
+    private NavMeshAgent agent; // 네비게이션 에이전트
+    private float moveTime = 3f; // 이동 시간
+    private float waitTime = 2f; // 멈춤 시간
+    private float timer;         // 현재 타이머
+    private bool isMoving = true; // 현재 이동 중인지 여부
 
-    private bool isWaiting = false;      // 현재 멈춘 상태인지
-    private float waitTimer = 0f;        // 멈춤 시간 카운트
+    private DropOnDeath dropOnDeath; // 드롭 스크립트 참조
 
     void Start()
     {
-        navAgent = GetComponent<NavMeshAgent>();
-        SetRandomDestination();
+        agent = GetComponent<NavMeshAgent>();
+        dropOnDeath = GetComponent<DropOnDeath>(); // DropOnDeath 스크립트 가져오기
+
+        timer = moveTime;
+        SetRandomTarget(); // 첫 목표 지점 설정
     }
 
     void Update()
     {
-        if (isWaiting)
+        if (isMoving)
         {
-            waitTimer -= Time.deltaTime;
-            if (waitTimer <= 0f)
+            agent.SetDestination(targetPosition); // 목표 지점으로 이동
+
+            timer -= Time.deltaTime;
+            if (timer <= 0f || Vector3.Distance(transform.position, targetPosition) < 1f)
             {
-                isWaiting = false;
-                SetRandomDestination();
+                isMoving = false;
+                timer = waitTime;
+                agent.ResetPath(); // 이동 중지
             }
         }
         else
         {
-            if (!navAgent.pathPending && navAgent.remainingDistance < 0.5f)
+            timer -= Time.deltaTime;
+            if (timer <= 0f)
             {
-                // 목적지 도달 → 멈춤 상태로 전환
-                isWaiting = true;
-                waitTimer = Random.Range(minStopTime, maxStopTime);
-                navAgent.isStopped = true;
+                isMoving = true;
+                timer = moveTime;
+                SetRandomTarget(); // 새로운 목표 지점 설정
             }
         }
     }
 
-    void SetRandomDestination()
+    // 랜덤 위치 설정 함수
+    void SetRandomTarget()
     {
-        // 맵 내 랜덤 위치 지정
-        Vector3 randomDirection = Random.insideUnitSphere * moveRadius;
-        randomDirection += transform.position;
-        NavMeshHit hit;
+        float range = 20f; // 맵 이동 범위
+        Vector3 randomPos = new Vector3(Random.Range(-range, range), transform.position.y, Random.Range(-range, range));
+        targetPosition = randomPos;
+    }
 
-        // 랜덤 위치가 NavMesh 위인지 확인
-        if (NavMesh.SamplePosition(randomDirection, out hit, moveRadius, NavMesh.AllAreas))
-        {
-            navAgent.SetDestination(hit.position);
-            navAgent.isStopped = false;
-        }
+    // 외부에서 호출되는 함수, 동물 제거 및 아이템 드롭 수행
+    public void Die()
+    {
+        dropOnDeath?.DropItem(); // 아이템 드롭 시도
+        Destroy(gameObject);     // 동물 오브젝트 제거
     }
 }
