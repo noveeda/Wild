@@ -5,6 +5,7 @@ using UnityEngine.AI;
 [RequireComponent(typeof(NavMeshAgent))]
 public class MonsterAI : MonoBehaviour
 {
+    public GameObject dropItemPrefab; // 드롭될 아이템 프리팹
     // 네비게이션 에이전트
     private NavMeshAgent navAgent;
 
@@ -81,7 +82,7 @@ public class MonsterAI : MonoBehaviour
         // Monster -> Player의 방향의 노멀벡터
         Vector3 directionToTarget = player.transform.position - transform.position;
         directionToTarget = directionToTarget.normalized;
-        
+
         // 두 벡터를 내적
         float dot = Vector3.Dot(norm, directionToTarget);
         // 반시야각의 cos값
@@ -115,5 +116,17 @@ public class MonsterAI : MonoBehaviour
         Debug.DrawLine(origin, origin + leftDir, Color.green);
         Debug.DrawLine(origin, origin + rightDir, Color.green);
 
+    }
+
+    public void Die()
+    {
+        // 몬스터 제거
+        Destroy(gameObject);
+
+        // 아이템 드롭
+        if (dropItemPrefab != null)
+        {
+            Instantiate(dropItemPrefab, transform.position, Quaternion.identity);
+        }
     }
 }
