@@ -1,132 +1,113 @@
-using System;
 using UnityEngine;
 using UnityEngine.AI;
 
-[RequireComponent(typeof(NavMeshAgent))]
-public class MonsterAI : MonoBehaviour
+public class Monster : MonoBehaviour
 {
-    public GameObject dropItemPrefab; // 드롭될 아이템 프리팹
-    // 네비게이션 에이전트
-    private NavMeshAgent navAgent;
+    public float health = 20f;                     // 좀비 체력
+    public float detectionRange = 10f;             // 플레이어 감지 범위
+    public float attackRange = 2f;                 // 공격 거리
+    public float wanderRadius = 10f;               // 랜덤 이동 반경
+    public float wanderInterval = 3f;              // 이동 지연 시간
 
-    // 추적 대상 플레이어
-    public Transform player;
+    public Transform player;                       // 플레이어 참조 (없을 수도 있음)
+    private NavMeshAgent agent;                    // 네비게이션 에이전트
+    private Animator animator;                     // 애니메이터 참조
 
-    // 추적 조건 설정
-    [SerializeField]
-    private float chaseDistance = 10f;       // 최대 추적 거리
-    [SerializeField]
-    private float stopDistance = 2f;         // 너무 가까우면 멈춤
-    [SerializeField]
-    private float fieldOfView = 80f;         // 시야각 (도 단위)
+    private float wanderTimer;                     // 랜덤 이동 타이머
+    private bool isDead = false;                   // 죽음 상태 여부
 
-    // 정찰용 패트롤 포인트
-    public Transform[] patrolPoints;
-    private int currentPatrolIndex = 0;
-
-    private void Start()
+    void Start()
     {
-        navAgent = GetComponent<NavMeshAgent>();
+        agent = GetComponent<NavMeshAgent>();
+        animator = GetComponent<Animator>();
+        wanderTimer = wanderInterval;
 
-        // 경고용: 플레이어가 안 넣어졌을 경우
+        // 플레이어가 에디터에서 할당 안됐을 경우 씬에서 자동 검색
         if (player == null)
         {
-            GameObject foundPlayer = GameObject.FindGameObjectWithTag("Player");
-            if (foundPlayer != null) player = foundPlayer.transform;
-            else Debug.LogError("Player를 찾을 수 없습니다. 'player' 변수 할당 필요.");
-        }
-    }
-
-    private void Update()
-    {
-        if (player == null) return;
-
-        Vector3 toPlayer = player.position - transform.position;
-        float distanceToPlayer = toPlayer.magnitude;
-        float angleToPlayer = Vector3.Angle(transform.forward, toPlayer.normalized);
-
-        DebugFOV(); // 초록 시야각 선 그리기
-
-        // 조건: 거리 + 시야각 안에 플레이어가 있으면 추적
-        if (distanceToPlayer <= chaseDistance && angleToPlayer <= fieldOfView * 0.5f)
-        {
-            Debug.DrawLine(transform.position, player.position, Color.red); // 빨간 추적선
-            ChasePlayer(distanceToPlayer);
-        }
-        else
-        {
-            Patrol();
-        }
-    }
-
-    private void ChasePlayer(float distanceToPlayer)
-    {
-        if (distanceToPlayer <= stopDistance)
-        {
-            navAgent.isStopped = true;
-        }
-        else
-        {
-            navAgent.isStopped = false;
-            navAgent.SetDestination(player.position);
-        }
-    }
-
-    private void Patrol()
-    {
-        // 경고 방지: 패트롤 지점이 없으면 정지
-        if (patrolPoints == null || patrolPoints.Length == 0) return;
-
-        // Monster의 시야 방향
-        Vector3 norm = transform.forward.normalized;
-        // Monster -> Player의 방향의 노멀벡터
-        Vector3 directionToTarget = player.transform.position - transform.position;
-        directionToTarget = directionToTarget.normalized;
-
-        // 두 벡터를 내적
-        float dot = Vector3.Dot(norm, directionToTarget);
-        // 반시야각의 cos값
-        float fovOfHalf = Mathf.Cos(fieldOfView / 2);
-        // 만약 Player의 방향이 시야각 내에 있으면면
-        if (dot >= fovOfHalf)
-        {
-            if (!navAgent.pathPending && navAgent.remainingDistance < 0.5f)
+            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+            if (playerObj != null)
             {
-                currentPatrolIndex = (currentPatrolIndex + 1) % patrolPoints.Length;
-                navAgent.SetDestination(patrolPoints[currentPatrolIndex].position);
+                player = playerObj.transform;
             }
         }
     }
 
-    private void DebugFOV()
+    void Update()
     {
-        Vector3 forward = transform.forward * chaseDistance;
+        if (isDead) return;
 
-        // 좌 시야각
-        Quaternion leftRot = Quaternion.Euler(0, -fieldOfView * 0.5f, 0);
-        // 우우 시야각
-        Quaternion rightRot = Quaternion.Euler(0, fieldOfView * 0.5f, 0);
+        // 플레이어가 있을 경우
+        if (player != null)
+        {
+            float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
-        Vector3 leftDir = leftRot * forward;
-        Vector3 rightDir = rightRot * forward;
-
-        Debug.DrawLine(transform.position, transform.position + leftDir, Color.green);
-        Debug.DrawLine(transform.position, transform.position + rightDir, Color.green);
-        Vector3 origin = transform.position + Vector3.up * 1f; // 1미터 위
-        Debug.DrawLine(origin, origin + leftDir, Color.green);
-        Debug.DrawLine(origin, origin + rightDir, Color.green);
-
+            if (distanceToPlayer <= attackRange)
+            {
+                agent.isStopped = true;
+                animator.SetTrigger("Attack");
+            }
+            else if (distanceToPlayer <= detectionRange)
+            {
+                agent.isStopped = false;
+                agent.SetDestination(player.position);
+                animator.SetBool("isWalking", true);
+            }
+            else
+            {
+                WanderRandomly();
+            }
+        }
+        else // 플레이어가 없으면 무조건 자유롭게 랜덤 이동
+        {
+            WanderRandomly();
+        }
     }
 
-    public void Die()
+    void WanderRandomly()
     {
-        // 몬스터 제거
-        Destroy(gameObject);
+        wanderTimer += Time.deltaTime;
 
-        // 아이템 드롭
-        if (dropItemPrefab != null)
+        if (wanderTimer >= wanderInterval)
         {
-            Instantiate(dropItemPrefab, transform.position, Quaternion.identity);
+            Vector3 newPos = RandomNavSphere(transform.position, wanderRadius, -1);
+            agent.SetDestination(newPos);
+            wanderTimer = 0;
         }
+
+        agent.isStopped = false;
+        animator.SetBool("isWalking", true);
+    }
+
+    public void TakeDamage(float damage)
+    {
+        if (isDead) return;
+
+        health -= damage;
+
+        if (health <= 0f)
+        {
+            Die();
+        }
+    }
+
+    void Die()
+    {
+        isDead = true;
+        agent.isStopped = true;
+
+        animator.SetBool("isDead", true);
+        Destroy(gameObject, 2.4f);
+    }
+
+    public static Vector3 RandomNavSphere(Vector3 origin, float dist, int layermask)
+    {
+        Vector3 randDirection = Random.insideUnitSphere * dist;
+        randDirection += origin;
+
+        NavMeshHit navHit;
+        NavMesh.SamplePosition(randDirection, out navHit, dist, layermask);
+
+        return navHit.position;
     }
 }
