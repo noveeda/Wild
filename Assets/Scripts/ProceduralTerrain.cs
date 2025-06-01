@@ -4,20 +4,20 @@ using System.Collections.Generic;
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
 public class ProceduralTerrain : MonoBehaviour
 {
-    // ÁöÇü Å©±â ¼³Á¤
-    [Range(10, 400)] public int width = 100;
-    [Range(10, 400)] public int height = 100;
+    // ï¿½ï¿½ï¿½ï¿½ Å©ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+    [Range(10, 1000)] public int width = 100;
+    [Range(10, 1000)] public int height = 100;
 
-    // ³ëÀÌÁî »ùÇÃ¸µ ½ºÄÉÀÏ ¹× ³ôÀÌ ¹èÀ²
-    [Range(1f, 100f)] public float scale = 10f;
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ã¸ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+    [Range(1f, 200f)] public float scale = 10f;
     [Range(1f, 50f)] public float heightMultiplier = 5f;
 
-    // ÆÛ¸° ³ëÀÌÁî ¼³Á¤°ª
+    // ï¿½Û¸ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     [Range(1, 10)] public int octaves = 4;
     [Range(0f, 1f)] public float persistence = 0.5f;
     [Range(1f, 5f)] public float lacunarity = 2f;
 
-    // °¢ ³ôÀÌ ¼öÁØ¿¡ ´ëÀÀÇÏ´Â ¹üÀ§ (Á¤±ÔÈ­µÈ ³ôÀÌ ±âÁØ)
+    // ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ø¿ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½ ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½È­ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½)
     [Header("Height Ranges (0~1)")]
     [Range(0f, 1f)] public float level1 = 0.1f;
     [Range(0f, 1f)] public float level2 = 0.3f;
@@ -25,20 +25,20 @@ public class ProceduralTerrain : MonoBehaviour
     [Range(0f, 1f)] public float level4 = 0.7f;
     [Range(0f, 1f)] public float level5 = 0.9f;
 
-    // °¢ ³ôÀÌ ¹üÀ§¿¡ ´ëÀÀÇÏ´Â ¸ÓÆ¼¸®¾óµé
+    // ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½ ï¿½ï¿½Æ¼ï¿½ï¿½ï¿½ï¿½ï¿½
     [Header("Materials for each level (1~5)")]
     public Material[] materials = new Material[5];
 
     private MeshFilter meshFilter;
     private MeshRenderer meshRenderer;
 
-    // ¸Þ½¬ »ý¼º ¸Þ¼­µå
+    // ï¿½Þ½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Þ¼ï¿½ï¿½ï¿½
     public void GenerateMesh()
     {
         meshFilter = GetComponent<MeshFilter>();
         meshRenderer = GetComponent<MeshRenderer>();
 
-        // Á¤Á¡ ¹× UV ÁÂÇ¥ ¹è¿­ ÃÊ±âÈ­
+        // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ UV ï¿½ï¿½Ç¥ ï¿½è¿­ ï¿½Ê±ï¿½È­
         Vector3[] vertices = new Vector3[(width + 1) * (height + 1)];
         Vector2[] uvs = new Vector2[vertices.Length];
         float[,] heightMap = new float[width + 1, height + 1];
@@ -46,28 +46,28 @@ public class ProceduralTerrain : MonoBehaviour
         float minHeight = float.MaxValue;
         float maxHeight = float.MinValue;
 
-        // °¢ Á¤Á¡ÀÇ ³ôÀÌ °è»ê ¹× ÀúÀå
+        // ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
         for (int z = 0, i = 0; z <= height; z++)
         {
             for (int x = 0; x <= width; x++, i++)
             {
-                float y = CalculateHeight(x, z); // ³ôÀÌ °è»ê
-                vertices[i] = new Vector3(x, y, z); // Á¤Á¡ À§Ä¡ ¼³Á¤
-                uvs[i] = new Vector2((float)x / width, (float)z / height); // UV ÁÂÇ¥ ¼³Á¤
+                float y = CalculateHeight(x, z); // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½
+                vertices[i] = new Vector3(x, y, z); // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ä¡ ï¿½ï¿½ï¿½ï¿½
+                uvs[i] = new Vector2((float)x / width, (float)z / height); // UV ï¿½ï¿½Ç¥ ï¿½ï¿½ï¿½ï¿½
                 heightMap[x, z] = y;
 
-                // ÃÖ¼Ò/ÃÖ´ë ³ôÀÌ ÃßÀû
+                // ï¿½Ö¼ï¿½/ï¿½Ö´ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
                 if (y < minHeight) minHeight = y;
                 if (y > maxHeight) maxHeight = y;
             }
         }
 
-        // °¢ ¼­ºê¸Þ½Ã¿¡ ÇØ´çÇÏ´Â »ï°¢Çü ¸®½ºÆ® ÃÊ±âÈ­
+        // ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Þ½Ã¿ï¿½ ï¿½Ø´ï¿½ï¿½Ï´ï¿½ ï¿½ï°¢ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Æ® ï¿½Ê±ï¿½È­
         List<int>[] submeshTriangles = new List<int>[materials.Length];
         for (int i = 0; i < materials.Length; i++)
             submeshTriangles[i] = new List<int>();
 
-        // »ï°¢Çü »ý¼º ¹× ¼­ºê¸Þ½Ã¿¡ ºÐ¹è
+        // ï¿½ï°¢ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Þ½Ã¿ï¿½ ï¿½Ð¹ï¿½
         for (int z = 0, vert = 0; z < height; z++, vert++)
         {
             for (int x = 0; x < width; x++, vert++)
@@ -77,35 +77,35 @@ public class ProceduralTerrain : MonoBehaviour
                 int c = vert + 1;
                 int d = vert + width + 2;
 
-                // µÎ °³ÀÇ »ï°¢ÇüÀ¸·Î »ç°¢Çü ±¸¼º
+                // ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï°¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ç°¢ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
                 AddTriangleToSubmesh(a, b, c, vertices, submeshTriangles, minHeight, maxHeight);
                 AddTriangleToSubmesh(c, b, d, vertices, submeshTriangles, minHeight, maxHeight);
             }
         }
 
-        // ¸Þ½¬ °´Ã¼ »ý¼º ¹× ¼³Á¤
+        // ï¿½Þ½ï¿½ ï¿½ï¿½Ã¼ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
         Mesh mesh = new Mesh();
-        mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32; // Á¤Á¡ ¼ö°¡ ¸¹À» °æ¿ì 32ºñÆ® ÀÎµ¦½º »ç¿ë
+        mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32; // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ 32ï¿½ï¿½Æ® ï¿½Îµï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½
         mesh.vertices = vertices;
         mesh.uv = uvs;
         mesh.subMeshCount = materials.Length;
 
-        // ¼­ºê¸Þ½Ã¿¡ »ï°¢Çü ÇÒ´ç
+        // ï¿½ï¿½ï¿½ï¿½Þ½Ã¿ï¿½ ï¿½ï°¢ï¿½ï¿½ ï¿½Ò´ï¿½
         for (int i = 0; i < materials.Length; i++)
             mesh.SetTriangles(submeshTriangles[i], i);
 
-        mesh.RecalculateNormals(); // ³ë¸Ö º¤ÅÍ ÀÚµ¿ °è»ê
+        mesh.RecalculateNormals(); // ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Úµï¿½ ï¿½ï¿½ï¿½
         meshFilter.sharedMesh = mesh;
 
-        // ¸ÓÆ¼¸®¾ó ¹è¿­ Àû¿ë
+        // ï¿½ï¿½Æ¼ï¿½ï¿½ï¿½ï¿½ ï¿½è¿­ ï¿½ï¿½ï¿½ï¿½
         Material[] finalMats = new Material[materials.Length];
         for (int i = 0; i < materials.Length; i++)
-            finalMats[i] = materials[i] != null ? materials[i] : materials[0]; // ºñ¾îÀÖÀ¸¸é Ã¹ ¹øÂ°·Î ´ëÃ¼
+            finalMats[i] = materials[i] != null ? materials[i] : materials[0]; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ Ã¹ ï¿½ï¿½Â°ï¿½ï¿½ ï¿½ï¿½Ã¼
 
         meshRenderer.sharedMaterials = finalMats;
     }
 
-    // ÆÛ¸° ³ëÀÌÁî¸¦ ÀÌ¿ëÇØ ³ôÀÌ °è»ê
+    // ï¿½Û¸ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½î¸¦ ï¿½Ì¿ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½
     float CalculateHeight(int x, int z)
     {
         float amplitude = 1f;
@@ -127,10 +127,10 @@ public class ProceduralTerrain : MonoBehaviour
         return noiseHeight * heightMultiplier;
     }
 
-    // »ï°¢ÇüÀ» ÇØ´ç ³ôÀÌ¿¡ µû¶ó ¼­ºê¸Þ½Ã¿¡ Ãß°¡
+    // ï¿½ï°¢ï¿½ï¿½ï¿½ï¿½ ï¿½Ø´ï¿½ ï¿½ï¿½ï¿½Ì¿ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Þ½Ã¿ï¿½ ï¿½ß°ï¿½
     void AddTriangleToSubmesh(int a, int b, int c, Vector3[] verts, List<int>[] submeshTris, float minH, float maxH)
     {
-        // Æò±Õ ³ôÀÌ °è»ê ÈÄ Á¤±ÔÈ­
+        // ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½È­
         float avgY = (verts[a].y + verts[b].y + verts[c].y) / 3f;
         float t = Mathf.InverseLerp(minH, maxH, avgY);
 
