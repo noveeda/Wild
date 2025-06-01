@@ -1,82 +1,107 @@
 using UnityEngine;
-using UnityEngine.AI;
 
 public class Monster : MonoBehaviour
 {
-    public float health = 20f;                     // 좀비 체력
-    public float detectionRange = 10f;             // 플레이어 감지 범위
-    public float attackRange = 2f;                 // 공격 거리
-    public float wanderRadius = 10f;               // 랜덤 이동 반경
-    public float wanderInterval = 3f;              // 이동 지연 시간
+    public float health = 20f;
+    public float detectionRange = 30f;
+    public float attackRange = 5f;
+    public float moveSpeed = 2f;
+    public float directionChangeInterval = 5f;
+    public float attackCooldown = 1.5f; // 공격 간격
 
-    public Transform player;                       // 플레이어 참조 (없을 수도 있음)
-    private NavMeshAgent agent;                    // 네비게이션 에이전트
-    private Animator animator;                     // 애니메이터 참조
+    public Transform player;
 
-    private float wanderTimer;                     // 랜덤 이동 타이머
-    private bool isDead = false;                   // 죽음 상태 여부
+    private Animator animator;
+    private float directionTimer = 0f;
+    private Vector3 moveDirection;
+    private bool isDead = false;
+
+    private float lastAttackTime = -999f;
 
     void Start()
     {
-        agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
-        wanderTimer = wanderInterval;
 
-        // 플레이어가 에디터에서 할당 안됐을 경우 씬에서 자동 검색
         if (player == null)
         {
             GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
             if (playerObj != null)
-            {
                 player = playerObj.transform;
-            }
         }
+
+        PickNewDirection();
     }
 
     void Update()
     {
         if (isDead) return;
 
-        // 플레이어가 있을 경우
+        if (Input.GetKeyDown(KeyCode.K))
+        {
+            Debug.Log("🔁 강제 공격 애니메이션 테스트");
+            animator.SetTrigger("Attack");
+        }
+
         if (player != null)
         {
             float distanceToPlayer = Vector3.Distance(transform.position, player.position);
+            Debug.Log($"📏 플레이어 거리: {distanceToPlayer:F2} (공격: {attackRange}, 탐지: {detectionRange})");
 
             if (distanceToPlayer <= attackRange)
             {
-                agent.isStopped = true;
-                animator.SetTrigger("Attack");
+                animator.SetBool("isWalking", false);
+                transform.LookAt(new Vector3(player.position.x, transform.position.y, player.position.z));
+
+                // 공격 쿨타임이 지났으면 공격
+                if (Time.time >= lastAttackTime + attackCooldown)
+                {
+                    animator.SetTrigger("Attack");
+                    lastAttackTime = Time.time;
+                    Debug.Log("🗡️ 공격 실행");
+
+                    Player target = player.GetComponent<Player>();
+                    if (target != null)
+                    {
+                        target.TakeDamage(5f);
+                    }
+                }
+
+                return;
             }
             else if (distanceToPlayer <= detectionRange)
             {
-                agent.isStopped = false;
-                agent.SetDestination(player.position);
+                transform.LookAt(new Vector3(player.position.x, transform.position.y, player.position.z));
+                transform.position = Vector3.MoveTowards(transform.position, player.position, moveSpeed * Time.deltaTime);
                 animator.SetBool("isWalking", true);
-            }
-            else
-            {
-                WanderRandomly();
+                Debug.Log("👣 플레이어 추적 중");
+                return;
             }
         }
-        else // 플레이어가 없으면 무조건 자유롭게 랜덤 이동
-        {
-            WanderRandomly();
-        }
+
+        WanderInStraightLine();
     }
 
-    void WanderRandomly()
+    void WanderInStraightLine()
     {
-        wanderTimer += Time.deltaTime;
+        directionTimer += Time.deltaTime;
 
-        if (wanderTimer >= wanderInterval)
+        if (directionTimer >= directionChangeInterval)
         {
-            Vector3 newPos = RandomNavSphere(transform.position, wanderRadius, -1);
-            agent.SetDestination(newPos);
-            wanderTimer = 0;
+            PickNewDirection();
+            directionTimer = 0f;
         }
 
-        agent.isStopped = false;
+        transform.position += moveDirection * moveSpeed * Time.deltaTime;
         animator.SetBool("isWalking", true);
+    }
+
+    void PickNewDirection()
+    {
+        float angle = Random.Range(0f, 360f);
+        moveDirection = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)).normalized;
+        transform.rotation = Quaternion.LookRotation(moveDirection);
+
+        Debug.Log($"🎯 새로운 방향 설정 → {moveDirection}");
     }
 
     public void TakeDamage(float damage)
@@ -94,20 +119,7 @@ public class Monster : MonoBehaviour
     void Die()
     {
         isDead = true;
-        agent.isStopped = true;
-
         animator.SetBool("isDead", true);
         Destroy(gameObject, 2.4f);
-    }
-
-    public static Vector3 RandomNavSphere(Vector3 origin, float dist, int layermask)
-    {
-        Vector3 randDirection = Random.insideUnitSphere * dist;
-        randDirection += origin;
-
-        NavMeshHit navHit;
-        NavMesh.SamplePosition(randDirection, out navHit, dist, layermask);
-
-        return navHit.position;
     }
 }
