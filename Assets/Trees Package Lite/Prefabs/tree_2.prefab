@@ -118,6 +118,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4129e060cbebb804abd7717db2b3c57b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  branchPrefab: {fileID: 287607508521314303, guid: 02765722b7f6f464a913a7213d1d5a05, type: 3}
+  branchPrefab: {fileID: 399229246177210288, guid: ff6ebb6f7dacbd74cae83489a37028a8, type: 3}
   dropCount: 1
   dropRadius: 1
