@@ -6,17 +6,18 @@ public class Monster : MonoBehaviour
     public float detectionRange = 30f;
     public float attackRange = 5f;
     public float moveSpeed = 2f;
-    public float directionChangeInterval = 5f;
-    public float attackCooldown = 1.5f; // 공격 간격
 
     public Transform player;
+    public GameObject lootPrefab;
 
     private Animator animator;
     private float directionTimer = 0f;
+    private float directionChangeInterval = 5f;
     private Vector3 moveDirection;
     private bool isDead = false;
 
-    private float lastAttackTime = -999f;
+    private float attackCooldown = 1.5f;
+    private float lastAttackTime = 0f;
 
     void Start()
     {
@@ -36,49 +37,52 @@ public class Monster : MonoBehaviour
     {
         if (isDead) return;
 
-        if (Input.GetKeyDown(KeyCode.K))
-        {
-            Debug.Log("🔁 강제 공격 애니메이션 테스트");
-            animator.SetTrigger("Attack");
-        }
-
         if (player != null)
         {
-            float distanceToPlayer = Vector3.Distance(transform.position, player.position);
-            Debug.Log($"📏 플레이어 거리: {distanceToPlayer:F2} (공격: {attackRange}, 탐지: {detectionRange})");
+            float distance = Vector3.Distance(transform.position, player.position);
+            Debug.Log($"📏 플레이어 거리: {distance:F2} (공격: {attackRange}, 탐지: {detectionRange})");
 
-            if (distanceToPlayer <= attackRange)
+            if (distance <= attackRange)
             {
-                animator.SetBool("isWalking", false);
-                transform.LookAt(new Vector3(player.position.x, transform.position.y, player.position.z));
-
-                // 공격 쿨타임이 지났으면 공격
-                if (Time.time >= lastAttackTime + attackCooldown)
+                if (Time.time - lastAttackTime >= attackCooldown)
                 {
-                    animator.SetTrigger("Attack");
+                    Attack();
                     lastAttackTime = Time.time;
-                    Debug.Log("🗡️ 공격 실행");
-
-                    Player target = player.GetComponent<Player>();
-                    if (target != null)
-                    {
-                        target.TakeDamage(5f);
-                    }
                 }
 
+                animator.SetBool("isWalking", false);
+                Debug.Log("💥 상태: 공격 중");
                 return;
             }
-            else if (distanceToPlayer <= detectionRange)
+            else if (distance <= detectionRange)
             {
-                transform.LookAt(new Vector3(player.position.x, transform.position.y, player.position.z));
-                transform.position = Vector3.MoveTowards(transform.position, player.position, moveSpeed * Time.deltaTime);
-                animator.SetBool("isWalking", true);
-                Debug.Log("👣 플레이어 추적 중");
+                ChasePlayer();
+                Debug.Log("🏃 상태: 추적 중");
                 return;
             }
         }
 
         WanderInStraightLine();
+        Debug.Log("🔄 상태: 방향 이동 중");
+    }
+
+    void Attack()
+    {
+        animator.SetTrigger("Attack");
+
+        if (player.TryGetComponent(out Player p))
+        {
+            p.TakeDamage(5f);
+        }
+    }
+
+    void ChasePlayer()
+    {
+        Vector3 targetPos = new Vector3(player.position.x, transform.position.y, player.position.z);
+        transform.LookAt(targetPos);
+        transform.position = Vector3.MoveTowards(transform.position, targetPos, moveSpeed * Time.deltaTime);
+
+        animator.SetBool("isWalking", true);
     }
 
     void WanderInStraightLine()
@@ -101,7 +105,7 @@ public class Monster : MonoBehaviour
         moveDirection = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)).normalized;
         transform.rotation = Quaternion.LookRotation(moveDirection);
 
-        Debug.Log($"🎯 새로운 방향 설정 → {moveDirection}");
+        Debug.Log($"🎯 [Direction] 새로운 방향 설정됨 → {moveDirection}");
     }
 
     public void TakeDamage(float damage)
@@ -109,6 +113,7 @@ public class Monster : MonoBehaviour
         if (isDead) return;
 
         health -= damage;
+        Debug.Log($"💢 피격! 남은 체력: {health}");
 
         if (health <= 0f)
         {
@@ -120,6 +125,13 @@ public class Monster : MonoBehaviour
     {
         isDead = true;
         animator.SetBool("isDead", true);
-        Destroy(gameObject, 2.4f);
+
+        if (lootPrefab != null)
+        {
+            Instantiate(lootPrefab, transform.position + Vector3.up, Quaternion.identity);
+            Debug.Log("📦 아이템 드롭됨");
+        }
+
+        Destroy(gameObject, 2f);
     }
 }

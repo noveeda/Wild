@@ -6,15 +6,24 @@ public class Player : MonoBehaviour
     public float health = 20f;
     private bool isDead = false;
 
+    public GameObject itemPrefab; // 죽을 때 드롭할 아이템
+
     void Update()
     {
         if (isDead) return;
 
+        // 이동
         float h = Input.GetAxis("Horizontal");
         float v = Input.GetAxis("Vertical");
-
         Vector3 dir = new Vector3(h, 0, v);
         transform.Translate(dir.normalized * moveSpeed * Time.deltaTime, Space.World);
+
+        // ✅ K 키로 즉사 테스트
+        if (Input.GetKeyDown(KeyCode.K))
+        {
+            Debug.Log("🧪 [K] 키 입력됨 - 테스트용 즉사 실행");
+            TakeDamage(9999f); // 체력을 큰 수치로 줄여 즉사 유도
+        }
     }
 
     public void TakeDamage(float damage)
@@ -35,10 +44,21 @@ public class Player : MonoBehaviour
         isDead = true;
         Debug.Log("💀 플레이어 사망");
 
-        // 1) 오브젝트 완전 제거
-        Destroy(gameObject);
+        DropItem();
+        Destroy(gameObject); // 또는 gameObject.SetActive(false);
+    }
 
-        // 또는 2) 비활성화만 하고 싶다면 아래 한 줄을 사용하세요
-        // gameObject.SetActive(false);
+    void DropItem()
+    {
+        if (itemPrefab != null)
+        {
+            Vector3 dropPosition = transform.position + Vector3.up * 1f;
+            Instantiate(itemPrefab, dropPosition, Quaternion.identity);
+            Debug.Log("💎 아이템 드롭 완료");
+        }
+        else
+        {
+            Debug.LogWarning("⚠ itemPrefab이 연결되지 않았습니다.");
+        }
     }
 }
