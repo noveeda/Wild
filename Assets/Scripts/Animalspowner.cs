@@ -1,57 +1,56 @@
 using UnityEngine;
-using UnityEngine.AI;
 using System.Collections.Generic;
 
 public class AnimalSpawner : MonoBehaviour
 {
-    public GameObject animalPrefab;  // 생성할 동물 프리팹
-    public int maxCount = 10;        // 최대 유지할 동물 수
-    public float spawnRadius = 40f;  // 스폰 위치 반경
-    public float spawnInterval = 3f; // 개체 수 확인 주기 (초)
+    public GameObject animalPrefab;     // 동물 프리팹
+    public int maxAnimals = 50;         // 동물 최대 수
+    public float spawnAreaSize = 1000f; // 스폰 맵 범위
 
-    private List<GameObject> spawnedAnimals = new List<GameObject>(); // 현재 스폰된 동물 리스트
+    private List<GameObject> animals = new List<GameObject>();
+    private float checkTimer = 0f;
 
     void Start()
     {
-        // spawnInterval 간격마다 동물 수 확인 및 부족하면 재스폰
-        InvokeRepeating(nameof(CheckAndRespawn), 0f, spawnInterval);
+        SpawnInitialAnimals(); // 시작 시 동물 스폰
     }
 
-    // 현재 살아있는 동물 수 확인 후 부족하면 스폰
-    void CheckAndRespawn()
+    void Update()
     {
-        // null 객체 제거 (동물이 Destroy 되었을 경우)
-        spawnedAnimals.RemoveAll(animal => animal == null);
+        // 10초마다 개수 확인
+        checkTimer += Time.deltaTime;
+        if (checkTimer >= 10f)
+        {
+            checkTimer = 0f;
+            RespawnAnimals(); // 부족한 수만큼 스폰
+        }
+    }
 
-        int missing = maxCount - spawnedAnimals.Count;
-
-        // 부족한 수 만큼 새 동물 스폰
-        for (int i = 0; i < missing; i++)
+    void SpawnInitialAnimals()
+    {
+        for (int i = 0; i < maxAnimals; i++)
         {
             SpawnAnimal();
         }
     }
 
-    // 동물을 하나 생성하고 리스트에 등록
     void SpawnAnimal()
     {
-        Vector3 spawnPos = GetRandomNavMeshPosition(transform.position, spawnRadius);
-        GameObject animal = Instantiate(animalPrefab, spawnPos, Quaternion.identity);
-        spawnedAnimals.Add(animal);
+        // 랜덤 위치에 동물 생성
+        Vector3 pos = new Vector3(Random.Range(0, spawnAreaSize), 0, Random.Range(0, spawnAreaSize));
+        GameObject animal = Instantiate(animalPrefab, pos, Quaternion.identity);
+        animals.Add(animal);
     }
 
-    // NavMesh 상에서 유효한 랜덤 위치 반환
-    Vector3 GetRandomNavMeshPosition(Vector3 center, float radius)
+    void RespawnAnimals()
     {
-        Vector3 randomDir = Random.insideUnitSphere * radius + center;
-        NavMeshHit hit;
+        // 제거된 객체 정리
+        animals.RemoveAll(a => a == null);
 
-        // NavMesh에 유효한 지점이 있으면 해당 위치 반환
-        if (NavMesh.SamplePosition(randomDir, out hit, radius, NavMesh.AllAreas))
+        int toSpawn = maxAnimals - animals.Count;
+        for (int i = 0; i < toSpawn; i++)
         {
-            return hit.position;
+            SpawnAnimal();
         }
-
-        return center;
     }
 }
