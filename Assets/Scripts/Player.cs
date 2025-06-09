@@ -22,7 +22,7 @@ public class Player : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.K))
         {
             Debug.Log("🧪 [K] 키 입력됨 - 테스트용 즉사 실행");
-            TakeDamage(9999f); // 체력을 큰 수치로 줄여 즉사 유도
+            TakeDamage(9999f); 
         }
     }
 
