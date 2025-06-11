@@ -1,109 +1,119 @@
 using UnityEngine;
+using UnityEngine.AI;
 using System.Collections;
 
 /// <summary>
-/// 몬스터의 AI를 담당하는 스크립트. 플레이어를 탐지하고 추적하며, 일정 거리 내에서는 공격하고
-/// 피해를 입으면 넉백되고, 사망 시 아이템을 드랍한다.
+/// NavMeshAgent를 사용하는 몬스터 AI 스크립트
+/// 주요 기능: 플레이어 추적, 공격, 자유 이동, 넉백, 드롭 아이템, 사망 처리
 /// </summary>
+[RequireComponent(typeof(NavMeshAgent))]
 public class Monster : MonoBehaviour
 {
-    // === 몬스터 기본 속성 ===
-    public float health = 20f;                    // 몬스터 체력
-    public float detectionRange = 30f;            // 플레이어를 인식하는 범위
-    public float attackRange = 5f;                // 공격 범위
-    public float moveSpeed = 2f;                  // 이동 속도
+    // === 몬스터 상태 값 ===
+    public float health = 20f;              // 몬스터 체력
+    public float detectionRange = 30f;      // 플레이어 탐지 범위
+    public float attackRange = 5f;          // 공격 범위
+    public float moveSpeed = 3.5f;          // 이동 속도
 
-    public Transform player;                      // 타겟이 되는 플레이어
-    public GameObject lootPrefab;                 // 드랍 아이템 프리팹
+    // === 참조 변수 ===
+    public Transform player;                // 추적할 플레이어
+    public GameObject lootPrefab;           // 드롭 아이템 프리팹
 
-    // === 컴포넌트 ===
-    private Animator animator;                    // 애니메이터
-    private Rigidbody rb;                         // 리지드바디
+    // === 내부 컴포넌트 ===
+    private Animator animator;              // 애니메이터
+    private Rigidbody rb;                   // 넉백 전용 리지드바디
+    private NavMeshAgent agent;             // 네비메시 이동 담당
 
-    // === 랜덤 이동 관련 변수 ===
-    private float directionTimer = 0f;            // 방향 유지 시간 측정용
-    private float directionChangeInterval = 5f;   // 일정 시간마다 방향 변경
-    private Vector3 moveDirection;                // 현재 이동 방향
+    // === 자유 이동 관련 ===
+    private float directionTimer = 0f;
+    private float directionChangeInterval = 5f; // 5초마다 새로운 위치 지정
+    private Vector3 wanderTarget;               // 자유 이동 목표 지점
 
-    // === 상태 관련 변수 ===
-    private bool isDead = false;                  // 사망 여부
-    private bool isKnockedBack = false;           // 넉백 상태 여부
-    public float knockbackDuration = 0.3f;        // 넉백 지속 시간
-    private float knockbackTimer = 0f;            // 넉백 시간 측정용
-    private float knockbackForce = 5f;            // 넉백 힘
+    // === 상태 플래그 ===
+    private bool isDead = false;
+    private bool isKnockedBack = false;
 
-    // === 공격 관련 변수 ===
-    private float attackCooldown = 1.5f;          // 공격 쿨타임
-    private float lastAttackTime = 0f;            // 마지막 공격 시각
+    // === 넉백 관련 ===
+    public float knockbackDuration = 0.3f; // 넉백 지속 시간
+    private float knockbackForce = 5f;     // 넉백 힘
+
+    // === 공격 쿨타임 ===
+    private float attackCooldown = 1.5f;   // 공격 간격
+    private float lastAttackTime = 0f;
 
     void Start()
     {
-        rb = GetComponent<Rigidbody>();
+        // 컴포넌트 초기화
         animator = GetComponent<Animator>();
+        rb = GetComponent<Rigidbody>();
+        agent = GetComponent<NavMeshAgent>();
 
-        // 플레이어를 자동으로 찾아 연결
+        // 네비메시 속도 설정
+        agent.speed = moveSpeed;
+        agent.angularSpeed = 360f;
+        agent.acceleration = 8f;
+
+        // 플레이어 자동 찾기
         if (player == null)
         {
-            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-            if (playerObj != null)
-                player = playerObj.transform;
+            GameObject p = GameObject.FindGameObjectWithTag("Player");
+            if (p) player = p.transform;
         }
 
-        PickNewDirection(); // 초기 이동 방향 설정
+        // 최초 자유 이동 위치 설정
+        PickNewWanderTarget();
     }
 
     void Update()
     {
-        // 죽었거나 넉백 중이면 행동 중지
-        if (isDead || isKnockedBack) return;
+        // 사망 시 무시
+        if (isDead) return;
 
-        // 넉백 처리
+        // 넉백 중이면 이동 멈춤
         if (isKnockedBack)
         {
-            knockbackTimer += Time.deltaTime;
-            if (knockbackTimer >= knockbackDuration)
-            {
-                isKnockedBack = false;
-                knockbackTimer = 0f;
-            }
-
-            animator.SetBool("Walking", false); // 넉백 중에는 걷지 않음
+            agent.isStopped = true;
             return;
         }
 
-        if (player != null)
+        // 플레이어와의 거리 측정
+        float distance = player ? Vector3.Distance(transform.position, player.position) : Mathf.Infinity;
+
+        // 공격 가능 거리면 공격 시도
+        if (player && distance <= attackRange)
         {
-            float distance = Vector3.Distance(transform.position, player.position);
+            if (Time.time - lastAttackTime >= attackCooldown)
+            {
+                Attack();
+                lastAttackTime = Time.time;
+            }
 
-            if (distance <= attackRange)
-            {
-                // 공격 범위 내라면 공격
-                if (Time.time - lastAttackTime >= attackCooldown)
-                {
-                    Attack();
-                    lastAttackTime = Time.time;
-                }
-                return;
-            }
-            else if (distance <= detectionRange)
-            {
-                // 탐지 범위 내라면 추적
-                ChasePlayer();
-                return;
-            }
+            // 공격 시 멈추고 걷기 애니메이션 중지
+            agent.isStopped = true;
+            animator?.SetBool("isWalking", false);
         }
-
-        // 기본 행동: 직선 이동
-        WanderInStraightLine();
+        // 탐지 범위 안이면 추적
+        else if (player && distance <= detectionRange)
+        {
+            agent.isStopped = false;
+            agent.SetDestination(player.position);
+            animator?.SetBool("isWalking", true);
+        }
+        // 탐지 범위 밖이면 자유 이동
+        else
+        {
+            Wander();
+        }
     }
 
     /// <summary>
-    /// 플레이어에게 공격을 시도
+    /// 공격 실행 (애니메이션 및 플레이어 데미지)
     /// </summary>
     void Attack()
     {
         animator?.SetTrigger("Attack");
 
+        // 플레이어에게 데미지 적용
         if (player.TryGetComponent(out Player p))
         {
             p.TakeDamage(5f);
@@ -111,59 +121,57 @@ public class Monster : MonoBehaviour
     }
 
     /// <summary>
-    /// 플레이어를 향해 추적 이동
+    /// 자유 이동(Wander) 로직: 랜덤 위치로 이동
     /// </summary>
-    void ChasePlayer()
-    {
-        Vector3 targetPos = new Vector3(player.position.x, transform.position.y, player.position.z);
-        transform.LookAt(targetPos);
-        transform.position = Vector3.MoveTowards(transform.position, player.position, moveSpeed * Time.deltaTime);
-
-        animator?.SetBool("isWalking", true);
-    }
-
-    /// <summary>
-    /// 랜덤 방향으로 직선 이동 (5초마다 방향 전환)
-    /// </summary>
-    void WanderInStraightLine()
+    void Wander()
     {
         directionTimer += Time.deltaTime;
 
-        if (directionTimer >= directionChangeInterval)
+        // 일정 시간마다 또는 도착 시 새로운 위치 설정
+        if (directionTimer >= directionChangeInterval || Vector3.Distance(transform.position, wanderTarget) < 1f)
         {
-            PickNewDirection();
+            PickNewWanderTarget();
             directionTimer = 0f;
         }
 
-        transform.position += moveDirection * moveSpeed * Time.deltaTime;
+        // 목표 지점으로 이동
+        agent.isStopped = false;
+        agent.SetDestination(wanderTarget);
         animator?.SetBool("isWalking", true);
     }
 
     /// <summary>
-    /// 새로운 랜덤 방향 선택
+    /// 랜덤한 자유 이동 위치를 설정
     /// </summary>
-    void PickNewDirection()
+    void PickNewWanderTarget()
     {
-        float angle = Random.Range(0f, 360f);
-        moveDirection = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)).normalized;
-        transform.rotation = Quaternion.LookRotation(moveDirection);
+        float radius = 20f;
+        Vector3 randomDirection = Random.insideUnitSphere * radius;
+        randomDirection += transform.position;
+
+        NavMeshHit hit;
+        if (NavMesh.SamplePosition(randomDirection, out hit, radius, NavMesh.AllAreas))
+        {
+            wanderTarget = hit.position;
+        }
+        else
+        {
+            wanderTarget = transform.position;
+        }
     }
 
     /// <summary>
-    /// 피해 처리 및 넉백 적용
+    /// 데미지 처리 및 넉백 적용
     /// </summary>
     public void TakeDamage(float damage, Transform attacker = null)
     {
-        if (isDead) return;
-        if (attacker == null) return;
+        if (isDead || attacker == null) return;
 
         health -= damage;
 
-        // 넉백 방향 계산 및 힘 적용
-        Vector3 knockbackDir = (transform.position - attacker.position).normalized;
-        Debug.Log(knockbackDir);
-        rb.AddForce(knockbackDir * knockbackForce, ForceMode.Impulse);
-        StartCoroutine(KnockbackRecovery());
+        // 넉백 방향 계산
+        Vector3 dir = (transform.position - attacker.position).normalized;
+        StartCoroutine(ApplyKnockback(dir));
 
         if (health <= 0f)
         {
@@ -172,31 +180,44 @@ public class Monster : MonoBehaviour
     }
 
     /// <summary>
-    /// 넉백 상태 회복 처리 코루틴
+    /// 넉백 효과를 잠깐 적용한 후 원상 복구
     /// </summary>
-    IEnumerator KnockbackRecovery()
+    IEnumerator ApplyKnockback(Vector3 direction)
     {
         isKnockedBack = true;
+        agent.isStopped = true;
+
+        // 힘을 가해 넉백
+        rb.AddForce(direction * knockbackForce, ForceMode.Impulse);
+
+        // 걷기 애니메이션 정지
         animator?.SetBool("isWalking", false);
-        yield return new WaitForSeconds(0.3f);
+
+        // 넉백 지속 시간 대기
+        yield return new WaitForSeconds(knockbackDuration);
+
+        rb.linearVelocity = Vector3.zero;
         isKnockedBack = false;
+        agent.isStopped = false;
     }
 
     /// <summary>
-    /// 사망 처리 (애니메이션, 아이템 드랍, 파괴)
+    /// 사망 처리 및 아이템 드롭
     /// </summary>
     void Die()
     {
         isDead = true;
+        agent.isStopped = true;
+
         animator?.SetBool("isDead", true);
 
-        // 아이템 드랍
+        // 아이템 드롭
         if (lootPrefab != null)
         {
             Instantiate(lootPrefab, transform.position + Vector3.up, Quaternion.identity);
         }
 
-        // 몬스터 오브젝트 파괴 (2초 후)
+        // 일정 시간 후 삭제
         Destroy(gameObject, 2f);
     }
 }
